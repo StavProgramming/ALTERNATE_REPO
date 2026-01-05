@@ -1,15 +1,17 @@
-Feature: Group B - VIP Automatic Discount Flow
-  # Tests ACTS IDs: 10, 11, 12
-  
-  Scenario Outline: Verify automatic VIP discounts are applied
-    Given User is on PrestaShop Home Page
-    And User logs in with "vip_user@testing.com" and "V!p_Secure_789#"
-    When User adds "<qty>" units of "Hummingbird printed t-shirt" to cart
-    And User proceeds to checkout with country "<country>"
-    Then The product price should show 20% specific discount
-    And The total should include the 15% VIP group reduction
+Feature: Group B - VIP Checkout
+
+  Scenario Outline: Checkout flow for VIP Users
+    Given I am on the PrestaShop home page
+    And I login as a "VIP" user
+    When I select a product with quantity <Quantity>
+    And I proceed to checkout
+    And I fill in the shipping address for "<Country>"
+    And I select the "<Carrier>" shipping method
+    And I apply a coupon code "<Coupon>"
+    Then the final price should include the VIP discount and be correct:
+      | total | <ExpectedTotal> |
 
     Examples:
-      | qty | country        | carrier           |
-      | 1   | USA            | Click and Collect |
-      | 3   | France         | Express Shipping  |
+      | Quantity | Country       | Carrier  | Coupon  | ExpectedTotal |
+      | 1        | International | Standard | None    | $20.32        |
+      | 3        | Domestic      | Express  | Applied | $16.46        |

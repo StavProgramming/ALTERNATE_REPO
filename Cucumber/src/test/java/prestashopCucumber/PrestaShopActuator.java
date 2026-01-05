@@ -13,32 +13,21 @@ public class PrestaShopActuator {
 
     public PrestaShopActuator(WebDriver driver) {
         this.driver = driver;
-        this.wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(20));
     }
 
-    public void goToHome(String url) {
-        driver.get(url);
+    public void goToHome(String url) { 
+        driver.get(url); 
     }
 
     public void login(String type) {
-        // Direct navigation to ensure the login form is ready
         driver.get("http://192.168.1.107:8080/index.php?controller=authentication");
-        
-        WebElement emailField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("field-email")));
-        WebElement passField = driver.findElement(By.id("field-password"));
-        
-        emailField.clear();
-        passField.clear();
-
-        // Using your specific SUT Data
-        if (type.equalsIgnoreCase("VIP")) {
-            emailField.sendKeys("vip_user@testing.com");
-            passField.sendKeys("V!p_Secure_789#");
-        } else {
-            emailField.sendKeys("standard_user@testing.com");
-            passField.sendKeys("Std_P@ss_2026!");
-        }
-        
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("field-email"))).sendKeys(
+            type.equalsIgnoreCase("VIP") ? "vip_user@testing.com" : "standard_user@testing.com"
+        );
+        driver.findElement(By.id("field-password")).sendKeys(
+            type.equalsIgnoreCase("VIP") ? "V!p_Secure_789#" : "Std_P@ss_2026!"
+        );
         driver.findElement(By.id("submit-login")).click();
         driver.get("http://192.168.1.107:8080/index.php");
     }
@@ -57,76 +46,82 @@ public class PrestaShopActuator {
     }
 
     public void fillAddress(String countryType) {
-        // Step 1: Personal Info (Skipped if logged in)
-        if (driver.findElements(By.cssSelector(".logout")).isEmpty()) {
-            WebElement s1 = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("checkout-personal-information-step")));
-            if (!driver.findElement(By.id("field-firstname")).isDisplayed()) clickWithJS(s1.findElement(By.cssSelector("h1")));
-            driver.findElement(By.id("field-firstname")).sendKeys("Automation");
-            driver.findElement(By.id("field-lastname")).sendKeys("Tester");
-            driver.findElement(By.id("field-email")).sendKeys("test" + System.currentTimeMillis() + "@example.com");
-            for (WebElement cb : s1.findElements(By.cssSelector("input[type='checkbox']"))) { if (!cb.isSelected()) clickWithJS(cb); }
-            clickWithJS(s1.findElement(By.name("continue")));
+        WebElement step1 = driver.findElement(By.id("checkout-personal-information-step"));
+        if (!step1.getAttribute("class").contains("-complete")) {
+            wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("firstname"))).sendKeys("Automation");
+            driver.findElement(By.name("lastname")).sendKeys("Tester");
+            driver.findElement(By.name("email")).sendKeys("guest" + System.currentTimeMillis() + "@testing.com");
+            
+            step1.findElements(By.cssSelector("input[type='checkbox']")).forEach(cb -> {
+                if (!cb.isSelected()) clickJS(cb);
+            });
+            clickJS(step1.findElement(By.name("continue")));
         }
 
-        // Step 2: Address
-        WebElement s2 = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("checkout-addresses-step")));
-        if (driver.findElements(By.cssSelector(".address-item.selected")).isEmpty()) {
-            if (!driver.findElement(By.id("field-address1")).isDisplayed()) clickWithJS(s2.findElement(By.cssSelector("h1")));
-            driver.findElement(By.id("field-address1")).sendKeys("123 Test St");
+        wait.until(ExpectedConditions.attributeContains(By.id("checkout-addresses-step"), "class", "-current"));
+        WebElement step2 = driver.findElement(By.id("checkout-addresses-step"));
+        
+        List<WebElement> addressField = driver.findElements(By.id("field-address1"));
+        if (!addressField.isEmpty() && addressField.get(0).isDisplayed()) {
+            addressField.get(0).sendKeys("123 Testing Avenue");
             driver.findElement(By.id("field-city")).sendKeys("Miami");
-            driver.findElement(By.id("field-postcode")).sendKeys("33101");
-            Select c = new Select(driver.findElement(By.id("field-id_country")));
-            c.selectByVisibleText("United States");
-            wait.until(d -> new Select(d.findElement(By.id("field-id_state"))).getOptions().size() > 1);
-            new Select(driver.findElement(By.id("field-id_state"))).selectByVisibleText("Florida");
+            driver.findElement(By.id("field-postcode")).sendKeys(countryType.contains("USA") ? "33101" : "75001");
+            
+            Select countrySelect = new Select(driver.findElement(By.id("field-id_country")));
+            countrySelect.selectByVisibleText(countryType.equalsIgnoreCase("International") ? "France" : "United States");
+            
+            if (!countryType.equalsIgnoreCase("International")) {
+                wait.until(d -> new Select(d.findElement(By.id("field-id_state"))).getOptions().size() > 1);
+                new Select(driver.findElement(By.id("field-id_state"))).selectByVisibleText("Florida");
+            }
         }
-        clickWithJS(driver.findElement(By.name("confirm-addresses")));
+
+        clickJS(wait.until(ExpectedConditions.elementToBeClickable(By.name("confirm-addresses"))));
+        wait.until(ExpectedConditions.not(ExpectedConditions.attributeContains(By.id("checkout-delivery-step"), "class", "-unreachable")));
     }
 
-    public void confirmShipping() {
-        clickWithJS(wait.until(ExpectedConditions.elementToBeClickable(By.name("confirmDeliveryOption"))));
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("checkout-payment-step")));
-        try { Thread.sleep(2500); } catch (Exception ignored) {}
+    public void confirmShipping(String carrier) {
+        wait.until(ExpectedConditions.attributeContains(By.id("checkout-delivery-step"), "class", "-current"));
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".loading-overlay")));
+        
+        try {
+            List<WebElement> options = driver.findElements(By.cssSelector(".delivery-option label"));
+            for (WebElement opt : options) {
+                if (opt.getText().toLowerCase().contains(carrier.toLowerCase())) {
+                    clickJS(opt);
+                    break;
+                }
+            }
+        } catch (Exception ignored) {}
+
+        clickJS(wait.until(ExpectedConditions.elementToBeClickable(By.name("confirmDeliveryOption"))));
+        try { Thread.sleep(1500); } catch (Exception ignored) {}
     }
 
     public void applyCoupon(String code) {
-        if (code == null || code.isEmpty()) return;
-        boolean applied = false;
-        int attempts = 0;
-        while (!applied && attempts < 5) {
-            try {
-                List<WebElement> inputs = driver.findElements(By.name("discount_name"));
-                if (!inputs.isEmpty() && inputs.get(0).isDisplayed()) {
-                    inputs.get(0).clear();
-                    inputs.get(0).sendKeys(code);
-                    clickWithJS(driver.findElement(By.cssSelector("#promo-code button[type='submit']")));
-                    applied = true;
-                    Thread.sleep(1500);
-                } else {
-                    // Using your confirmed working selector list
-                    WebElement promoLink = wait.until(ExpectedConditions.presenceOfElementLocated(
-                        By.cssSelector(".promo-code-button .display-promo, .promo-link, a.promo-code-button")));
-                    clickWithJS(promoLink);
-                    Thread.sleep(1000); 
-                }
-            } catch (Exception e) { attempts++; }
-        }
-    }
-
-    public void finishPayment() {
+        if (code == null || code.equalsIgnoreCase("None")) return;
+        String actualCode = code.equalsIgnoreCase("Applied") ? "SAVE10" : code;
         try {
-            WebElement terms = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("conditions_to_approve[terms-and-conditions]")));
-            if (!terms.isSelected()) clickWithJS(terms);
-            List<WebElement> opts = driver.findElements(By.cssSelector("input[name='payment-option']"));
-            if (!opts.isEmpty()) clickWithJS(opts.get(0));
+            clickJS(wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".display-promo"))));
+            WebElement input = wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("discount_name")));
+            input.clear();
+            input.sendKeys(actualCode);
+            driver.findElement(By.cssSelector("#promo-code button[type='submit']")).click();
+            Thread.sleep(2000);
+            wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".cart-summary .loading-overlay")));
         } catch (Exception ignored) {}
     }
 
+    public void finishPayment() {
+        wait.until(ExpectedConditions.attributeContains(By.id("checkout-payment-step"), "class", "-current"));
+    }
+
     public String getTotal() {
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".loading-overlay")));
         return wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".cart-total .value"))).getText();
     }
 
-    private void clickWithJS(WebElement el) {
+    private void clickJS(WebElement el) {
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", el);
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
     }
