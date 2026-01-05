@@ -1,0 +1,21 @@
+# ACTS Test Suite Generation: Mon Jan 05 00:19:00 IST 2026
+#  '*' represents don't care value 
+# Degree of interaction coverage: 2
+# Number of parameters: 5
+# Maximum number of values per parameter: 4
+# Number of configurations: 14
+Quantity,Country,CustomerGroup,Carrier,Coupon
+3,USA,Visitor,Click and Collect,SAVE10
+1,France,Visitor,Standard Shipping,None
+3,United Kingdom,Visitor,Express Shipping,None
+1,USA,Guest,Standard Shipping,SAVE10
+3,France,Guest,Express Shipping,SAVE10
+1,United Kingdom,Guest,Standard Shipping,None
+1,USA,Registered,Click and Collect,None
+3,France,Registered,Express Shipping,SAVE10
+3,United Kingdom,Registered,Standard Shipping,SAVE10
+1,USA,VIP,Click and Collect,None
+3,France,VIP,Express Shipping,SAVE10
+3,United Kingdom,VIP,Standard Shipping,SAVE10
+1,France,Guest,Click and Collect,SAVE10
+1,United Kingdom,Registered,Express Shipping,SAVE10

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<System name="PrestaShop">
+  <Parameters>
+    <Parameter id="1" name="Quantity" type="1">
+      <values>
+        <value>1</value>
+        <value>3</value>
+      </values>
+      <basechoices />
+      <invalidValues />
+    </Parameter>
+    <Parameter id="2" name="Country" type="1">
+      <values>
+        <value>USA</value>
+        <value>France</value>
+        <value>United Kingdom</value>
+      </values>
+      <basechoices />
+      <invalidValues />
+    </Parameter>
+    <Parameter id="3" name="CustomerGroup" type="1">
+      <values>
+        <value>Visitor</value>
+        <value>Guest</value>
+        <value>Registered</value>
+        <value>VIP</value>
+      </values>
+      <basechoices />
+      <invalidValues />
+    </Parameter>
+    <Parameter id="4" name="Carrier" type="1">
+      <values>
+        <value>Standard Shipping</value>
+        <value>Express Shipping</value>
+        <value>Click and Collect</value>
+      </values>
+      <basechoices />
+      <invalidValues />
+    </Parameter>
+    <Parameter id="5" name="Coupon" type="1">
+      <values>
+        <value>None</value>
+        <value>SAVE10</value>
+      </values>
+      <basechoices />
+      <invalidValues />
+    </Parameter>
+  </Parameters>
+  <OutputParameters />
+  <Relations />
+  <Constraints>
+    <Constraint text="(Country == &quot;USA&quot;) =&gt; (Carrier != &quot;Express Shipping&quot;)">
+      <Parameters>
+        <Parameter name="Country" />
+        <Parameter name="Carrier" />
+      </Parameters>
+    </Constraint>
+    <Constraint text="(Country == &quot;United Kingdom&quot;) =&gt; (Carrier != &quot;Click and Collect&quot;)">
+      <Parameters>
+        <Parameter name="Country" />
+        <Parameter name="Carrier" />
+      </Parameters>
+    </Constraint>
+  </Constraints>
+</System>
+
